@@ -11,13 +11,16 @@ if not firebase_admin._apps:
 
 db = firestore.client()
 
-# 📥 Data ophalen uit Firestore
+# 📥 Data ophalen uit subcollecties van kastickets_raw
 @st.cache_data(ttl=600)
 def fetch_data():
-    kastickets = db.collection("kastickets_raw").stream()
     data = []
-    for ticket in kastickets:
-        items = ticket.reference.collection("items").stream()
+    kastickets = db.collection("kastickets_raw").stream()
+
+    for ticket_doc in kastickets:
+        items_ref = ticket_doc.reference.collection("items")
+        items = items_ref.stream()
+
         for item in items:
             d = item.to_dict()
             try:
@@ -29,8 +32,10 @@ def fetch_data():
                     "Prijs": float(d["prijs"]),
                     "Totaal": float(d["totaal"])
                 })
-            except:
+            except Exception as e:
+                st.error(f"Fout bij verwerken item: {e}")
                 continue
+
     return pd.DataFrame(data)
 
 # 📊 Streamlit layout
@@ -40,7 +45,7 @@ st.title("🧾 Uitgavenanalyse kastickets")
 df = fetch_data()
 
 if df.empty:
-    st.warning("Geen data gevonden in Firestore.")
+    st.warning("⚠️ Geen data gevonden in Firestore.")
 else:
     df["Maand"] = df["Datum"].dt.to_period("M")
 
@@ -58,6 +63,6 @@ else:
     st.subheader(f"📈 Gemiddelde prijs per maand voor: {artikel}")
     st.line_chart(prijs_per_maand)
 
-    # 📋 Optioneel: tabel tonen
+    # 📋 Optioneel: ruwe data tonen
     with st.expander("📋 Toon ruwe data"):
         st.dataframe(df.sort_values("Datum", ascending=False))
