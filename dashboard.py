@@ -11,7 +11,7 @@ if not firebase_admin._apps:
 
 db = firestore.client()
 
-# 📥 Data ophalen uit subcollecties van kastickets_raw
+# 📥 Data ophalen uit Firestore
 @st.cache_data(ttl=600)
 def fetch_data():
     data = []
@@ -19,15 +19,14 @@ def fetch_data():
     st.write("📦 Aantal kastickets gevonden:", len(kastickets))
 
     for ticket_doc in kastickets:
-        st.write("📄 Document ID:", ticket_doc.id)
+        st.write("🧾 Document ID:", ticket_doc.id)
         items_ref = ticket_doc.reference.collection("items")
         items = list(items_ref.stream())
-        st.write("🔍 Aantal items in", ticket_doc.id, ":", len(items))
+        st.write(f"🔍 {ticket_doc.id} bevat {len(items)} items")
 
         for item in items:
             d = item.to_dict()
             st.write("📋 Item:", d)
-
             try:
                 datum = pd.to_datetime(d["datum"], format="%Y-%m-%d")
                 data.append({
