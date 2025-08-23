@@ -1,13 +1,13 @@
 import streamlit as st
 import pandas as pd
+from firebase_admin import credentials, firestore
 import firebase_admin
-from firebase_admin import credentials, firestore, initialize_app
 from datetime import datetime
 
 # 🔐 Firebase via Streamlit Secrets
 if not firebase_admin._apps:
-    cred = credentials.Certificate(st.secrets["firebase"])
-    initialize_app(cred)
+    cred = credentials.Certificate(dict(st.secrets["firebase"]))
+    firebase_admin.initialize_app(cred)
 
 db = firestore.client()
 
