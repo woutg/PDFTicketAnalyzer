@@ -11,6 +11,18 @@ if not firebase_admin._apps:
 
 db = firestore.client()
 
+# ✅ Project-ID check
+st.sidebar.title("🔍 Firebase Debug")
+st.sidebar.write("📤 Verbonden met project:", st.secrets["firebase"]["project_id"])
+
+# 🔧 Testdocument schrijven om projectverbinding te bevestigen
+try:
+    test_doc = db.collection("kastickets_raw").document("debug_test")
+    test_doc.set({"test": True})
+    st.sidebar.success("✅ Firestore is schrijfbaar vanuit deze app.")
+except Exception as e:
+    st.sidebar.error(f"🚫 Kan niet schrijven naar Firestore: {e}")
+
 # 📥 Data ophalen uit Firestore
 @st.cache_data(ttl=600)
 def fetch_data():
