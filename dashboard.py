@@ -1,34 +1,35 @@
 import streamlit as st
 import pandas as pd
-import firebase_admin
-from firebase_admin import credentials, firestore
+from firebase_admin import credentials, firestore, initialize_app
 from datetime import datetime
- 
-# 🔐 Firebase setup
-if not firebase_admin._apps:
-    cred = credentials.Certificate("firebase-key.json")
-    firebase_admin.initialize_app(cred)
+
+# 🔐 Firebase via Streamlit Secrets
+if not firestore._apps:
+    cred = credentials.Certificate(st.secrets["firebase"])
+    initialize_app(cred)
 
 db = firestore.client()
 
 # 📥 Data ophalen uit Firestore
-@st.cache_data
+@st.cache_data(ttl=600)
 def fetch_data():
-    docs = db.collection("kastickets").stream()
+    kastickets = db.collection("kastickets_raw").stream()
     data = []
-    for doc in docs:
-        d = doc.to_dict()
-        try:
-            data.append({
-                "Datum": pd.to_datetime(d["datum"]),
-                "Art.Nr": d["artikelnummer"],
-                "Artikel": d["artikel"],
-                "Aantal/gewicht": float(d["aantal_of_gewicht"]),
-                "Prijs": float(d["prijs"]),
-                "Totaal": float(d["totaal"])
-            })
-        except:
-            continue
+    for ticket in kastickets:
+        items = ticket.reference.collection("items").stream()
+        for item in items:
+            d = item.to_dict()
+            try:
+                data.append({
+                    "Datum": pd.to_datetime(d["datum"]),
+                    "Art.Nr": d["artikelnummer"],
+                    "Artikel": d["artikel"],
+                    "Aantal/gewicht": float(d["aantal_of_gewicht"]),
+                    "Prijs": float(d["prijs"]),
+                    "Totaal": float(d["totaal"])
+                })
+            except:
+                continue
     return pd.DataFrame(data)
 
 # 📊 Streamlit layout
