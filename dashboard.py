@@ -11,59 +11,32 @@ if not firebase_admin._apps:
 
 db = firestore.client()
 
-# ✅ Project-ID check
-st.sidebar.title("🔍 Firebase Debug")
-st.sidebar.write("📤 Verbonden met project:", st.secrets["firebase"]["project_id"])
-
-# 🔧 Testdocument schrijven om projectverbinding te bevestigen
-try:
-    test_doc = db.collection("kastickets_raw").document("debug_test")
-    test_doc.set({"test": True})
-    st.sidebar.success("✅ Firestore is schrijfbaar vanuit deze app.")
-except Exception as e:
-    st.sidebar.error(f"🚫 Kan niet schrijven naar Firestore: {e}")
-
 # 📥 Data ophalen uit Firestore
 @st.cache_data(ttl=600)
 def fetch_data():
     data = []
-    try:
-        kastickets = list(db.collection("kastickets_raw").stream())
-        st.write("📦 Aantal kastickets gevonden:", len(kastickets))
+    kastickets = list(db.collection("kastickets_raw").stream())
 
-        if not kastickets:
-            st.info("ℹ️ De collectie 'kastickets_raw' lijkt leeg. Controleer of je in het juiste Firebase-project zit en of Firestore-regels lezen toestaan.")
+    for ticket_doc in kastickets:
+        items_ref = ticket_doc.reference.collection("items")
+        items = list(items_ref.stream())
 
-        st.write("📄 Documenten gevonden:", [doc.id for doc in kastickets])
+        for item in items:
+            d = item.to_dict()
+            try:
+                datum = pd.to_datetime(d["datum"], format="%Y-%m-%d")
+                data.append({
+                    "Datum": datum,
+                    "Art.Nr": d["artikelnummer"],
+                    "Artikel": d["artikel"],
+                    "Aantal/gewicht": float(d["aantal_of_gewicht"]),
+                    "Prijs": float(d["prijs"]),
+                    "Totaal": float(d["totaal"])
+                })
+            except:
+                continue
 
-        for ticket_doc in kastickets:
-            items_ref = ticket_doc.reference.collection("items")
-            items = list(items_ref.stream())
-            st.write(f"🔍 {ticket_doc.id} bevat {len(items)} items")
-
-            for item in items:
-                d = item.to_dict()
-                st.write("📋 Item:", d)
-                try:
-                    datum = pd.to_datetime(d["datum"], format="%Y-%m-%d")
-                    data.append({
-                        "Datum": datum,
-                        "Art.Nr": d["artikelnummer"],
-                        "Artikel": d["artikel"],
-                        "Aantal/gewicht": float(d["aantal_of_gewicht"]),
-                        "Prijs": float(d["prijs"]),
-                        "Totaal": float(d["totaal"])
-                    })
-                except Exception as e:
-                    st.error(f"❌ Fout bij verwerken item: {e}")
-                    continue
-
-        st.write("✅ Totaal aantal verwerkte items:", len(data))
-        return pd.DataFrame(data)
-
-    except Exception as e:
-        st.error(f"🚫 Fout bij ophalen van data uit Firestore: {e}")
-        return pd.DataFrame()
+    return pd.DataFrame(data)
 
 # 📊 Streamlit layout
 st.set_page_config(page_title="Kasticket Dashboard", layout="wide")
