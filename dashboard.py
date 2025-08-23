@@ -15,14 +15,19 @@ db = firestore.client()
 @st.cache_data(ttl=600)
 def fetch_data():
     data = []
-    kastickets = db.collection("kastickets_raw").stream()
+    kastickets = list(db.collection("kastickets_raw").stream())
+    st.write("📦 Aantal kastickets gevonden:", len(kastickets))
 
     for ticket_doc in kastickets:
+        st.write("📄 Document ID:", ticket_doc.id)
         items_ref = ticket_doc.reference.collection("items")
-        items = items_ref.stream()
+        items = list(items_ref.stream())
+        st.write("🔍 Aantal items in", ticket_doc.id, ":", len(items))
 
         for item in items:
             d = item.to_dict()
+            st.write("📋 Item:", d)
+
             try:
                 datum = pd.to_datetime(d["datum"], format="%Y-%m-%d")
                 data.append({
@@ -37,6 +42,7 @@ def fetch_data():
                 st.error(f"❌ Fout bij verwerken item: {e}")
                 continue
 
+    st.write("✅ Totaal aantal verwerkte items:", len(data))
     return pd.DataFrame(data)
 
 # 📊 Streamlit layout
