@@ -24,8 +24,9 @@ def fetch_data():
         for item in items:
             d = item.to_dict()
             try:
+                datum = pd.to_datetime(d["datum"], format="%Y-%m-%d")
                 data.append({
-                    "Datum": pd.to_datetime(d["datum"]),
+                    "Datum": datum,
                     "Art.Nr": d["artikelnummer"],
                     "Artikel": d["artikel"],
                     "Aantal/gewicht": float(d["aantal_of_gewicht"]),
@@ -33,7 +34,7 @@ def fetch_data():
                     "Totaal": float(d["totaal"])
                 })
             except Exception as e:
-                st.error(f"Fout bij verwerken item: {e}")
+                st.error(f"❌ Fout bij verwerken item: {e}")
                 continue
 
     return pd.DataFrame(data)
