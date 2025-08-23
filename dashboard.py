@@ -34,8 +34,9 @@ def fetch_data():
         if not kastickets:
             st.info("ℹ️ De collectie 'kastickets_raw' lijkt leeg. Controleer of je in het juiste Firebase-project zit en of Firestore-regels lezen toestaan.")
 
+        st.write("📄 Documenten gevonden:", [doc.id for doc in kastickets])
+
         for ticket_doc in kastickets:
-            st.write("🧾 Document ID:", ticket_doc.id)
             items_ref = ticket_doc.reference.collection("items")
             items = list(items_ref.stream())
             st.write(f"🔍 {ticket_doc.id} bevat {len(items)} items")
