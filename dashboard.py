@@ -15,18 +15,15 @@ db = firestore.client()
 @st.cache_data(ttl=600)
 def fetch_data():
     data = []
-    kastickets = list(db.collection("kastickets_raw").stream())
+    kastickets = db.collection("kastickets_raw").stream()
 
     for ticket_doc in kastickets:
-        items_ref = ticket_doc.reference.collection("items")
-        items = list(items_ref.stream())
-
+        items = ticket_doc.reference.collection("items").stream()
         for item in items:
             d = item.to_dict()
             try:
-                datum = pd.to_datetime(d["datum"], format="%Y-%m-%d")
                 data.append({
-                    "Datum": datum,
+                    "Datum": pd.to_datetime(d["datum"], format="%Y-%m-%d"),
                     "Art.Nr": d["artikelnummer"],
                     "Artikel": d["artikel"],
                     "Aantal/gewicht": float(d["aantal_of_gewicht"]),
@@ -47,21 +44,40 @@ df = fetch_data()
 if df.empty:
     st.warning("⚠️ Geen data gevonden in Firestore.")
 else:
-    df["Maand"] = df["Datum"].dt.to_period("M")
+    # 📅 Maandkolom toevoegen
+    df = df.assign(Maand=df["Datum"].dt.to_period("M"))
 
     # 💰 Totale uitgaven per maand
-    maand_totalen = df.groupby("Maand")["Totaal"].sum()
-    maand_totalen.index = maand_totalen.index.to_timestamp()
-    maand_totalen.index = maand_totalen.index.strftime("%b %Y")  # bv. 'Aug 2025'
+    df = df.assign(Maand=df["Datum"].dt.to_period("M"))
+    uitgaven = df.groupby("Maand")["Totaal"].sum()
 
-    st.subheader("💰 Totale uitgaven per maand")
-    st.bar_chart(maand_totalen)
+    # 💚 Totale korting per maand
+    if "korting" in df.columns:
+        kortingen = df.groupby("Maand")["korting"].sum()
+    else:
+        kortingen = pd.Series(0, index=uitgaven.index)
+
+    # 📅 Format index
+    uitgaven.index = uitgaven.index.to_timestamp()
+    kortingen.index = kortingen.index.to_timestamp()
+    labels = uitgaven.index.strftime("%b %Y")
+
+    # 📊 Combineer in één DataFrame
+    grafiek_df = pd.DataFrame({
+        "Uitgaven": uitgaven.values,
+        "Korting": -kortingen.values  # negatief voor visuele impact
+    }, index=labels)
+
+    st.subheader("💰 Totale uitgaven per maand (inclusief kortingen)")
+    st.bar_chart(grafiek_df)
 
     # 📦 Prijs per artikel per maand
     artikel = st.selectbox("📦 Kies een artikel", sorted(df["Artikel"].unique()))
-    artikel_df = df[df["Artikel"] == artikel].copy()
-    artikel_df["Maand"] = artikel_df["Datum"].dt.to_period("M")
+    artikel_df = df.query("Artikel == @artikel").copy()
+    artikel_df = artikel_df.assign(Maand=artikel_df["Datum"].dt.to_period("M"))
     prijs_per_maand = artikel_df.groupby("Maand")["Prijs"].mean()
+    prijs_per_maand.index = prijs_per_maand.index.to_timestamp()
+    prijs_per_maand.index = prijs_per_maand.index.strftime("%b %Y")
 
     st.subheader(f"📈 Gemiddelde prijs per maand voor: {artikel}")
     st.line_chart(prijs_per_maand)
