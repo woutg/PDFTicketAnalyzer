@@ -51,6 +51,9 @@ else:
 
     # 💰 Totale uitgaven per maand
     maand_totalen = df.groupby("Maand")["Totaal"].sum()
+    maand_totalen.index = maand_totalen.index.to_timestamp()
+    maand_totalen.index = maand_totalen.index.strftime("%b %Y")  # bv. 'Aug 2025'
+
     st.subheader("💰 Totale uitgaven per maand")
     st.bar_chart(maand_totalen)
 
