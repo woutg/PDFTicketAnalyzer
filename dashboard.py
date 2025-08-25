@@ -59,7 +59,7 @@ else:
 
     # 📦 Prijs per artikel per maand
     artikel = st.selectbox("📦 Kies een artikel", sorted(df["Artikel"].unique()))
-    artikel_df = df[df["Artikel"] == artikel]
+    artikel_df = df[df["Artikel"] == artikel].copy()
     artikel_df["Maand"] = artikel_df["Datum"].dt.to_period("M")
     prijs_per_maand = artikel_df.groupby("Maand")["Prijs"].mean()
 
