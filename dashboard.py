@@ -46,22 +46,26 @@ df = fetch_data()
 if df.empty:
     st.warning("⚠️ Geen data gevonden in Firestore.")
 else:
-    # 📅 Maandkolom toevoegen
+    # 📅 Maandkolom
     df = df.assign(Maand=df["Datum"].dt.to_period("M"))
     df["Maand"] = df["Maand"].dt.to_timestamp()
 
-    # 💸 Uitgaven en 💚 Kortingen per maand
-    uitgaven = df.groupby("Maand")["Totaal"].sum()
-    kortingen = df.groupby("Maand")["korting"].sum() * -1  # negatief voor visuele impact
+    # 💸 Bruto uitgaven per maand
+    bruto = df.groupby("Maand")["Totaal"].sum()
+
+    # 💚 Kortingen per maand
+    kortingen = df.groupby("Maand")["korting"].sum()
+
+    # 🧮 Netto uitgaven = bruto - korting
+    netto = bruto - kortingen
 
     # 📊 Combineer in één DataFrame
-    labels = uitgaven.index.strftime("%b %Y")  # bv. 'Aug 2025'
+    labels = bruto.index.strftime("%b %Y")
     grafiek_df = pd.DataFrame({
         "Maand": labels,
-        "Uitgaven": uitgaven.values,
+        "Netto uitgaven": netto.values,
         "Korting": kortingen.values
-})
-
+    })
 
     # 🔄 Herstructureer voor Altair
     grafiek_melted = grafiek_df.melt("Maand", var_name="Type", value_name="Bedrag")
@@ -70,10 +74,10 @@ else:
     chart = alt.Chart(grafiek_melted).mark_bar().encode(
         x=alt.X("Maand:N", title="Maand", sort=grafiek_df["Maand"].tolist()),
         y=alt.Y("Bedrag:Q", title="Bedrag (€)"),
-        color=alt.Color("Type:N", scale=alt.Scale(domain=["Uitgaven", "Korting"], range=["#1f77b4", "#2ca02c"])),
+        color=alt.Color("Type:N", scale=alt.Scale(domain=["Netto uitgaven", "Korting"], range=["#1f77b4", "#2ca02c"])),
         tooltip=["Maand", "Type", "Bedrag"]
     ).properties(
-        title="💰 Totale uitgaven per maand (inclusief kortingen)",
+        title="💰 Effectieve uitgaven per maand (inclusief kortingen)",
         width=700,
         height=400
     )
