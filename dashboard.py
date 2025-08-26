@@ -57,7 +57,7 @@ else:
     kortingen = df.groupby("Maand")["korting"].sum()
 
     # 🧮 Netto uitgaven = bruto - korting
-    netto = bruto - kortingen
+    netto = bruto + kortingen
 
     # 📊 Combineer in één DataFrame
     labels = bruto.index.strftime("%b %Y")
