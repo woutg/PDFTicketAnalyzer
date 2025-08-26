@@ -56,7 +56,7 @@ else:
     # 💚 Kortingen per maand
     kortingen = df.groupby("Maand")["korting"].sum()
 
-    # 🧮 Netto uitgaven = bruto - korting
+    # 🧮 Netto uitgaven = bruto + korting (korting is negatief)
     netto = bruto + kortingen
 
     # 📊 Combineer in één DataFrame
@@ -84,7 +84,7 @@ else:
 
     st.altair_chart(chart, use_container_width=True)
 
-    # 📦 Prijs per artikel per maand
+    # 📦 Prijs per artikel per dag
     artikel = st.selectbox("📦 Kies een artikel", sorted(df["Artikel"].unique()))
     artikel_df = df.query("Artikel == @artikel").copy()
     prijs_per_datum = artikel_df.groupby("Datum")["Prijs"].mean().reset_index()
@@ -100,6 +100,50 @@ else:
     )
 
     st.altair_chart(chart, use_container_width=True)
+
+    # 📦 Top 10 meest gekochte artikels
+    st.subheader("📦 Top 10 meest gekochte artikels")
+    top_aantal = (
+        df.groupby("Artikel")["Aantal/gewicht"]
+        .sum()
+        .sort_values(ascending=False)
+        .head(10)
+        .reset_index()
+    )
+
+    chart_aantal = alt.Chart(top_aantal).mark_bar().encode(
+        x=alt.X("Aantal/gewicht:Q", title="Aantal / Gewicht"),
+        y=alt.Y("Artikel:N", sort="-x", title="Artikel"),
+        color=alt.value("#1f77b4"),
+        tooltip=["Artikel", "Aantal/gewicht"]
+    ).properties(
+        width=700,
+        height=400
+    )
+
+    st.altair_chart(chart_aantal, use_container_width=True)
+
+    # 💰 Top 10 artikels met hoogste uitgaven
+    st.subheader("💰 Top 10 artikels met hoogste totale uitgave")
+    top_uitgave = (
+        df.groupby("Artikel")["Totaal"]
+        .sum()
+        .sort_values(ascending=False)
+        .head(10)
+        .reset_index()
+    )
+
+    chart_uitgave = alt.Chart(top_uitgave).mark_bar().encode(
+        x=alt.X("Totaal:Q", title="Totale uitgave (€)"),
+        y=alt.Y("Artikel:N", sort="-x", title="Artikel"),
+        color=alt.value("#2ca02c"),
+        tooltip=["Artikel", "Totaal"]
+    ).properties(
+        width=700,
+        height=400
+    )
+
+    st.altair_chart(chart_uitgave, use_container_width=True)
 
     # 📋 Optioneel: ruwe data tonen
     with st.expander("📋 Toon ruwe data"):
