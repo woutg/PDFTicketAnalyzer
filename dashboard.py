@@ -55,18 +55,20 @@ else:
     kortingen = df.groupby("Maand")["korting"].sum() * -1  # negatief voor visuele impact
 
     # 📊 Combineer in één DataFrame
+    labels = uitgaven.index.strftime("%b %Y")  # bv. 'Aug 2025'
     grafiek_df = pd.DataFrame({
-        "Maand": uitgaven.index,
+        "Maand": labels,
         "Uitgaven": uitgaven.values,
         "Korting": kortingen.values
-    })
+})
+
 
     # 🔄 Herstructureer voor Altair
     grafiek_melted = grafiek_df.melt("Maand", var_name="Type", value_name="Bedrag")
 
     # 🎨 Altair stacked bar chart
     chart = alt.Chart(grafiek_melted).mark_bar().encode(
-        x=alt.X("Maand:N", title="Maand", sort=None),
+        x=alt.X("Maand:N", title="Maand", sort=grafiek_df["Maand"].tolist()),
         y=alt.Y("Bedrag:Q", title="Bedrag (€)"),
         color=alt.Color("Type:N", scale=alt.Scale(domain=["Uitgaven", "Korting"], range=["#1f77b4", "#2ca02c"])),
         tooltip=["Maand", "Type", "Bedrag"]
