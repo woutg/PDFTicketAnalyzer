@@ -87,12 +87,19 @@ else:
     # 📦 Prijs per artikel per maand
     artikel = st.selectbox("📦 Kies een artikel", sorted(df["Artikel"].unique()))
     artikel_df = df.query("Artikel == @artikel").copy()
-    artikel_df = artikel_df.assign(Maand=artikel_df["Datum"].dt.to_period("M"))
-    artikel_df["Maand"] = artikel_df["Maand"].dt.to_timestamp()
-    prijs_per_maand = artikel_df.groupby("Maand")["Prijs"].mean()
+    prijs_per_datum = artikel_df.groupby("Datum")["Prijs"].mean().reset_index()
 
-    st.subheader(f"📈 Gemiddelde prijs per maand voor: {artikel}")
-    st.line_chart(prijs_per_maand)
+    chart = alt.Chart(prijs_per_datum).mark_line(point=True).encode(
+        x=alt.X("Datum:T", title="Day"),
+        y=alt.Y("Prijs:Q", title="Bedrag (€)"),
+        tooltip=["Datum", "Prijs"]
+    ).properties(
+        title=f"📈 Prijsontwikkeling voor: {artikel}",
+        width=700,
+        height=400
+    )
+
+    st.altair_chart(chart, use_container_width=True
 
     # 📋 Optioneel: ruwe data tonen
     with st.expander("📋 Toon ruwe data"):
