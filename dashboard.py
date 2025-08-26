@@ -66,7 +66,7 @@ else:
 
     # 🎨 Altair stacked bar chart
     chart = alt.Chart(grafiek_melted).mark_bar().encode(
-        x=alt.X("Maand:T", title="Maand"),
+        x=alt.X("Maand:N", title="Maand", sort=None),
         y=alt.Y("Bedrag:Q", title="Bedrag (€)"),
         color=alt.Color("Type:N", scale=alt.Scale(domain=["Uitgaven", "Korting"], range=["#1f77b4", "#2ca02c"])),
         tooltip=["Maand", "Type", "Bedrag"]
